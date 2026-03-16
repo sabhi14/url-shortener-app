@@ -20,6 +20,8 @@ target/
 
 # Maven
 .mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+mvnw
 
 # IDE
 .vscode/
