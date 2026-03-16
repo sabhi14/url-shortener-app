@@ -1,0 +1,47 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Java / Spring Boot
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.metadata/
+
+# Eclipse / STS workspace files anywhere
+**/.metadata/
+**/.settings/
+**/.project
+**/.classpath
+
+# Node
+node_modules/
+build/
+dist/
+coverage/
+
+# Keep empty folders if needed
+!backend/.gitkeep
+!frontend/.gitkeep
