@@ -49,3 +49,4 @@ public class UrlMapping {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 }
+    
