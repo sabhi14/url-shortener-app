@@ -1,14 +1,33 @@
 package com.abhishek.urlshortener.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.abhishek.urlshortener.dto.AnalyticsResponse;
 import com.abhishek.urlshortener.dto.CreateShortUrlRequest;
 import com.abhishek.urlshortener.dto.CreateShortUrlResponse;
 import com.abhishek.urlshortener.dto.FetchAllCreatedUrlsResponse;
 import com.abhishek.urlshortener.entity.UrlMapping;
 import com.abhishek.urlshortener.enums.UrlStatusFilter;
 import com.abhishek.urlshortener.exception.InvalidUrlException;
-import com.abhishek.urlshortener.exception.ShortUrlNotFoundException;
 import com.abhishek.urlshortener.exception.ShortUrlGoneException;
+import com.abhishek.urlshortener.exception.ShortUrlNotFoundException;
 import com.abhishek.urlshortener.service.UrlMappingService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,13 +36,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * REST controller for creating and resolving short URLs.
@@ -56,33 +68,7 @@ public class UrlMappingController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
-        @Operation(summary = "Redirect to original URL", description = "Resolves a short code and redirects (HTTP 302) to the original long URL. "
-                        +
-                        "On success, the response includes a Location header pointing to the original URL.")
-        @ApiResponses(value = {
-                        @ApiResponse(responseCode = "302", description = "Redirect to the original URL (Location header contains the target)"),
-                        @ApiResponse(responseCode = "404", description = "Short URL not found"),
-                        @ApiResponse(responseCode = "400", description = "Invalid short code format"),
-                        @ApiResponse(responseCode = "410", description = "Short URL is inactive or is expired")
-        })
-        @GetMapping("/{shortCode}")
-        public ResponseEntity<Map<String, Object>> redirectToOriginalUrl(
-                        @Parameter(description = "Short code segment of the short URL (e.g. `aB3xY9`).", example = "aB3xY9") @PathVariable String shortCode) {
-                if (!shortCode.matches("^[a-zA-Z0-9]+$")) {
-                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
-                                "The short code must contain only letters and numbers");
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-                }
-                UrlMapping urlMapping = urlMappingService.resolveByShortCode(shortCode);
-                return ResponseEntity.status(HttpStatus.FOUND)
-                                .header("Location", urlMapping.getOriginalUrl())
-                                .build();
-        }
-
-        @Operation(
-                summary = "Fetch all created short URLs",
-                description = "Returns a paginated list of short URLs. Optional params: status (ACTIVE, EXPIRED, or ALL; default ALL), page (0-based; default 0), and size (1-100; default 20). Sorted by createdAt descending."
-        )
+        @Operation(summary = "Fetch all created short URLs", description = "Returns a paginated list of short URLs. Optional params: status (ACTIVE, EXPIRED, or ALL; default ALL), page (0-based; default 0), and size (1-100; default 20). Sorted by createdAt descending.")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Paginated list of short URLs", content = @Content(mediaType = "application/json", schema = @Schema(implementation = FetchAllCreatedUrlsResponse.class))),
                         @ApiResponse(responseCode = "400", description = "Invalid query params: status, page, or size"),
@@ -98,7 +84,7 @@ public class UrlMappingController {
                         status = UrlStatusFilter.valueOf(statusParam.trim().toUpperCase());
                 } catch (IllegalArgumentException e) {
                         Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
-                                "status must be one of: ACTIVE, EXPIRED, ALL");
+                                        "status must be one of: ACTIVE, EXPIRED, ALL");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 if (page < 0) {
@@ -106,18 +92,54 @@ public class UrlMappingController {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 if (size < 1 || size > 100) {
-                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST, "size must be between 1 and 100");
+                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
+                                        "size must be between 1 and 100");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 Page<UrlMapping> pageResult = urlMappingService.fetchAllCreatedUrls(status, page, size);
                 FetchAllCreatedUrlsResponse response = new FetchAllCreatedUrlsResponse(
-                        pageResult.getContent(),
-                        pageResult.getTotalElements(),
-                        pageResult.getTotalPages(),
-                        pageResult.getSize(),
-                        pageResult.getNumber()
-                );
+                                pageResult.getContent(),
+                                pageResult.getTotalElements(),
+                                pageResult.getTotalPages(),
+                                pageResult.getSize(),
+                                pageResult.getNumber());
                 return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/{id}")
+        @Operation(summary = "Get a short URL by ID", description = "Returns a short URL by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Short URL found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UrlMapping.class))),
+                        @ApiResponse(responseCode = "404", description = "Short URL not found")
+        })
+
+        public ResponseEntity<UrlMapping> getUrlMappingById(@PathVariable Long id) {
+                UrlMapping urlMapping = urlMappingService.getUrlMappingById(id);
+                return ResponseEntity.ok(urlMapping);
+        }
+
+        @Operation(summary = "Delete a short URL by ID", description = "Deletes a short URL by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "204", description = "Short URL deleted successfully"),
+                        @ApiResponse(responseCode = "404", description = "Short URL not found")
+        })
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Void> deleteUrlMappingById(@PathVariable Long id) {
+                urlMappingService.deleteUrlMappingById(id);
+                return ResponseEntity.noContent().build();
+        }
+
+
+        @GetMapping("/{id}/analytics")
+        @Operation(summary = "Get analytics for a short URL by ID", description = "Returns analytics for a short URL by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Analytics found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AnalyticsResponse.class))),
+                        @ApiResponse(responseCode = "404", description = "Analytics not found")
+        })
+        public ResponseEntity<AnalyticsResponse> getAnalyticsById(@PathVariable Long id) {
+                AnalyticsResponse response = urlMappingService.getAnalyticsById(id);
+                return ResponseEntity.ok(response);
+
         }
 
         @ExceptionHandler(ShortUrlNotFoundException.class)

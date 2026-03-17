@@ -4,7 +4,6 @@ import java.security.SecureRandom;
 
 public class ShortCodeGenerator {
 
-	// TODO: add constants (e.g. alphabet, length) if needed
 	private static final String ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	private static final int CODE_LENGTH = 6;
 	private static final SecureRandom RANDOM = new SecureRandom();

@@ -1,5 +1,6 @@
 package com.abhishek.urlshortener.service;
 
+import com.abhishek.urlshortener.dto.AnalyticsResponse;
 import com.abhishek.urlshortener.dto.CreateShortUrlRequest;
 import com.abhishek.urlshortener.dto.CreateShortUrlResponse;
 import com.abhishek.urlshortener.entity.UrlMapping;
@@ -9,6 +10,7 @@ import com.abhishek.urlshortener.exception.ShortUrlGoneException;
 import com.abhishek.urlshortener.enums.UrlStatusFilter;
 import com.abhishek.urlshortener.repository.UrlMappingRepository;
 import com.abhishek.urlshortener.util.ShortCodeGenerator;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -73,7 +75,8 @@ public class UrlMappingService {
     }
 
     /**
-     * Fetches URL mappings with required status filter, pagination, and sort by createdAt descending.
+     * Fetches URL mappings with required status filter, pagination, and sort by
+     * createdAt descending.
      */
     public Page<UrlMapping> fetchAllCreatedUrls(UrlStatusFilter status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -83,6 +86,11 @@ public class UrlMappingService {
             case EXPIRED -> urlMappingRepository.findAllExpired(now, pageable);
             case ALL -> urlMappingRepository.findAll(pageable);
         };
+    }
+
+    public UrlMapping getUrlMappingById(Long id) {
+        return urlMappingRepository.findById(id)
+                .orElseThrow(() -> new ShortUrlNotFoundException("Url mapping not found"));
     }
 
     private void validateRequest(String originalUrl) {
@@ -99,5 +107,18 @@ public class UrlMappingService {
             shortCode = ShortCodeGenerator.generate();
         } while (urlMappingRepository.existsByShortUrl(shortCode));
         return shortCode;
+    }
+
+    public void deleteUrlMappingById(Long id) {
+        UrlMapping urlMapping = getUrlMappingById(id);
+        urlMapping.setActive(false);
+        urlMappingRepository.save(urlMapping);
+    }
+
+    public AnalyticsResponse getAnalyticsById(Long id) {
+        UrlMapping urlMapping = getUrlMappingById(id);
+        return new AnalyticsResponse(urlMapping.getId(), urlMapping.getOriginalUrl(), urlMapping.getShortUrl(),
+                urlMapping.getCreatedAt(), urlMapping.getExpiresAt(), urlMapping.getClickCount(),
+                urlMapping.isActive());
     }
 }
