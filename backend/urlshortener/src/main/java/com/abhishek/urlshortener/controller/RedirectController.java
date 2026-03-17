@@ -1,8 +1,6 @@
 package com.abhishek.urlshortener.controller;
 
 import com.abhishek.urlshortener.entity.UrlMapping;
-import com.abhishek.urlshortener.exception.ShortUrlGoneException;
-import com.abhishek.urlshortener.exception.ShortUrlNotFoundException;
 import com.abhishek.urlshortener.service.UrlMappingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,11 +36,12 @@ public class RedirectController {
     })
     @GetMapping("/{shortCode}")
     public ResponseEntity<?> redirectToOriginalUrl(
-            @Parameter(description = "Short code segment of the short URL (e.g. `aB3xY9`).", example = "aB3xY9")
-            @PathVariable String shortCode) {
+            @Parameter(description = "Short code segment of the short URL (e.g. `aB3xY9`).", example = "aB3xY9") @PathVariable String shortCode) {
         if (!shortCode.matches("^[a-zA-Z0-9]+$")) {
-            Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
-                    "The short code must contain only letters and numbers");
+            Map<String, Object> body = new HashMap<>();
+            body.put("status", HttpStatus.BAD_REQUEST.value());
+            body.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
+            body.put("message", "The short code must contain only letters and numbers");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
         }
 
@@ -52,25 +50,4 @@ public class RedirectController {
                 .header("Location", urlMapping.getOriginalUrl())
                 .build();
     }
-
-    @ExceptionHandler(ShortUrlNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleShortUrlNotFound(ShortUrlNotFoundException ex) {
-        Map<String, Object> body = createErrorBody(HttpStatus.NOT_FOUND, ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-    }
-
-    @ExceptionHandler(ShortUrlGoneException.class)
-    public ResponseEntity<Map<String, Object>> handleShortUrlGone(ShortUrlGoneException ex) {
-        Map<String, Object> body = createErrorBody(HttpStatus.GONE, ex.getMessage());
-        return ResponseEntity.status(HttpStatus.GONE).body(body);
-    }
-
-    private Map<String, Object> createErrorBody(HttpStatus status, String message) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        return body;
-    }
 }
-

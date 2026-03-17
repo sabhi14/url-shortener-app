@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,9 +22,6 @@ import com.abhishek.urlshortener.dto.CreateShortUrlResponse;
 import com.abhishek.urlshortener.dto.FetchAllCreatedUrlsResponse;
 import com.abhishek.urlshortener.entity.UrlMapping;
 import com.abhishek.urlshortener.enums.UrlStatusFilter;
-import com.abhishek.urlshortener.exception.InvalidUrlException;
-import com.abhishek.urlshortener.exception.ShortUrlGoneException;
-import com.abhishek.urlshortener.exception.ShortUrlNotFoundException;
 import com.abhishek.urlshortener.service.UrlMappingService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,20 +76,25 @@ public class UrlMappingController {
                         @Parameter(description = "Page number (0-based)", example = "0") @RequestParam(name = "page", required = false, defaultValue = "0") int page,
                         @Parameter(description = "Page size (1-100)", example = "20") @RequestParam(name = "size", required = false, defaultValue = "20") int size) {
                 UrlStatusFilter status;
+                Map<String, Object> body = new HashMap<>();
                 try {
                         status = UrlStatusFilter.valueOf(statusParam.trim().toUpperCase());
                 } catch (IllegalArgumentException e) {
-                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
-                                        "status must be one of: ACTIVE, EXPIRED, ALL");
+                        body.put("status", HttpStatus.BAD_REQUEST.value());
+                        body.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
+                        body.put("message", "status must be one of: ACTIVE, EXPIRED, ALL");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 if (page < 0) {
-                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST, "page must be >= 0");
+                        body.put("status", HttpStatus.BAD_REQUEST.value());
+                        body.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
+                        body.put("message", "page must be >= 0");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 if (size < 1 || size > 100) {
-                        Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST,
-                                        "size must be between 1 and 100");
+                        body.put("status", HttpStatus.BAD_REQUEST.value());
+                        body.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
+                        body.put("message", "size must be between 1 and 100");
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
                 }
                 Page<UrlMapping> pageResult = urlMappingService.fetchAllCreatedUrls(status, page, size);
@@ -129,7 +130,6 @@ public class UrlMappingController {
                 return ResponseEntity.noContent().build();
         }
 
-
         @GetMapping("/{id}/analytics")
         @Operation(summary = "Get analytics for a short URL by ID", description = "Returns analytics for a short URL by its ID.")
         @ApiResponses(value = {
@@ -142,29 +142,4 @@ public class UrlMappingController {
 
         }
 
-        @ExceptionHandler(ShortUrlNotFoundException.class)
-        public ResponseEntity<Map<String, Object>> handleShortUrlNotFound(ShortUrlNotFoundException ex) {
-                Map<String, Object> body = createErrorBody(HttpStatus.NOT_FOUND, ex.getMessage());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-        }
-
-        @ExceptionHandler(ShortUrlGoneException.class)
-        public ResponseEntity<Map<String, Object>> handleShortUrlGone(ShortUrlGoneException ex) {
-                Map<String, Object> body = createErrorBody(HttpStatus.GONE, ex.getMessage());
-                return ResponseEntity.status(HttpStatus.GONE).body(body);
-        }
-
-        @ExceptionHandler(InvalidUrlException.class)
-        public ResponseEntity<Map<String, Object>> handleInvalidUrl(InvalidUrlException ex) {
-                Map<String, Object> body = createErrorBody(HttpStatus.BAD_REQUEST, ex.getMessage());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-        }
-
-        private Map<String, Object> createErrorBody(HttpStatus status, String message) {
-                Map<String, Object> body = new HashMap<>();
-                body.put("status", status.value());
-                body.put("error", status.getReasonPhrase());
-                body.put("message", message);
-                return body;
-        }
 }
