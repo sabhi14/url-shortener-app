@@ -1,6 +1,7 @@
 package com.abhishek.urlshortener.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -46,4 +47,7 @@ public interface UrlMappingRepository extends JpaRepository<UrlMapping, Long> {
      */
     @Query("SELECT u FROM UrlMapping u WHERE u.active = false OR (u.expiresAt IS NOT NULL AND u.expiresAt < :now)")
     Page<UrlMapping> findAllExpired(@Param("now") LocalDateTime now, Pageable pageable);
+
+    @Query("SELECT u FROM UrlMapping u ORDER BY u.clickCount DESC LIMIT 5")
+    List<UrlMapping> findTopFiveUrlsByClickCount();
 }

@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -95,6 +96,41 @@ class UrlMappingControllerTest {
                 .thenThrow(new ShortUrlNotFoundException("Url mapping not found"));
 
         mockMvc.perform(get("/api/urls/999/analytics"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Url mapping not found"));
+    }
+
+    @Test
+    void toggleActiveStatusById_returns200WithUpdatedBody_whenFound() throws Exception {
+        UrlMapping updated = new UrlMapping(
+                1L,
+                "https://example.com/long",
+                "abc123",
+                LocalDateTime.now(),
+                null,
+                3L,
+                false
+        );
+
+        when(urlMappingService.toggleActiveStatus(1L)).thenReturn(updated);
+
+        mockMvc.perform(patch("/api/urls/1/status"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.shortUrl").value("abc123"))
+                .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void toggleActiveStatusById_returns404WithErrorBody_whenNotFound() throws Exception {
+        when(urlMappingService.toggleActiveStatus(999L))
+                .thenThrow(new ShortUrlNotFoundException("Url mapping not found"));
+
+        mockMvc.perform(patch("/api/urls/999/status"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(404))

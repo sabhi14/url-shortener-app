@@ -1,6 +1,7 @@
 package com.abhishek.urlshortener.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.domain.Page;
@@ -9,8 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +23,7 @@ import com.abhishek.urlshortener.dto.AnalyticsResponse;
 import com.abhishek.urlshortener.dto.CreateShortUrlRequest;
 import com.abhishek.urlshortener.dto.CreateShortUrlResponse;
 import com.abhishek.urlshortener.dto.FetchAllCreatedUrlsResponse;
+import com.abhishek.urlshortener.dto.UpdateUrlMetadataRequest;
 import com.abhishek.urlshortener.entity.UrlMapping;
 import com.abhishek.urlshortener.enums.UrlStatusFilter;
 import com.abhishek.urlshortener.service.UrlMappingService;
@@ -140,6 +144,53 @@ public class UrlMappingController {
                 AnalyticsResponse response = urlMappingService.getAnalyticsById(id);
                 return ResponseEntity.ok(response);
 
+        }
+
+        @Operation(summary = "Update URL metadata by ID", description = "Updates editable metadata for a short URL mapping by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "URL metadata updated successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UrlMapping.class))),
+                        @ApiResponse(responseCode = "404", description = "Short URL not found"),
+                        @ApiResponse(responseCode = "400", description = "Invalid URL, custom alias, or expiration date"),
+                        @ApiResponse(responseCode = "409", description = "Custom alias already exists")
+        })
+        @PutMapping("/{id}")
+        public ResponseEntity<UrlMapping> updateUrlMetadataById(@PathVariable Long id,
+                        @RequestBody UpdateUrlMetadataRequest request) {
+                UrlMapping updatedUrlMapping = urlMappingService.updateUrlMetadata(id, request);
+                return ResponseEntity.ok(updatedUrlMapping);
+        }
+
+        @Operation(summary = "Toggle active status of a short URL by ID", description = "Toggles the active status of a short URL by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Active status toggled successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UrlMapping.class))),
+                        @ApiResponse(responseCode = "404", description = "Short URL not found")
+        })
+        @PatchMapping("/{id}/status")
+        public ResponseEntity<UrlMapping> toggleActiveStatusById(@PathVariable Long id) {
+                UrlMapping updatedUrlMapping = urlMappingService.toggleActiveStatus(id);
+                return ResponseEntity.ok(updatedUrlMapping);
+        }
+
+        @GetMapping("/{id}/clicks")
+        @Operation(summary = "Get click count for a short URL by ID", description = "Returns the click count for a short URL by its ID.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Click count found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Long.class))),
+                        @ApiResponse(responseCode = "404", description = "URL mapping not found")
+        })
+        public ResponseEntity<Long> getClickCountById(@PathVariable Long id) {
+                Long clickCount = urlMappingService.getClickCountById(id);
+                return ResponseEntity.ok(clickCount);
+        }
+
+        @GetMapping("/analytics/top-urls")
+        @Operation(summary = "Get top URLs by click count", description = "Returns the top URLs by click count.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Top URLs found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UrlMapping.class))),
+                        @ApiResponse(responseCode = "404", description = "Top URLs not found")
+        })
+        public ResponseEntity<List<UrlMapping>> getTopFiveUrlsByClickCount() {
+                List<UrlMapping> topFiveUrls = urlMappingService.getTopFiveUrlsByClickCount();
+                return ResponseEntity.ok(topFiveUrls.subList(0, 5));
         }
 
 }

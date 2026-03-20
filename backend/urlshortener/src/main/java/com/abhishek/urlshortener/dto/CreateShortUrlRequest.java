@@ -18,12 +18,7 @@ import lombok.Setter;
 @Schema(description = "Request payload for creating a short URL from a long URL")
 public class CreateShortUrlRequest {
 
-    @Schema(
-            description = "The original (long) URL to shorten. Must be a valid URL.",
-            example = "https://example.com/very/long/path",
-            requiredMode = Schema.RequiredMode.REQUIRED,
-            maxLength = 2048
-    )
+    @Schema(description = "The original (long) URL to shorten. Must be a valid URL.", example = "https://example.com/very/long/path", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 2048)
     @NotBlank(message = "Original URL is required")
     @Size(max = 2048, message = "Original URL must be less than 2048 characters")
     private String originalUrl;

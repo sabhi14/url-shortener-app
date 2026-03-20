@@ -9,7 +9,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * JPA entity representing a mapping between a short URL code and the original long URL.
+ * JPA entity representing a mapping between a short URL code and the original
+ * long URL.
  * Persisted in the {@code url_mapping} table.
  */
 @Entity
@@ -37,7 +38,9 @@ public class UrlMapping {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    /** Optional expiry time; after this, the short URL may be treated as invalid. */
+    /**
+     * Optional expiry time; after this, the short URL may be treated as invalid.
+     */
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
@@ -49,4 +52,3 @@ public class UrlMapping {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 }
-    

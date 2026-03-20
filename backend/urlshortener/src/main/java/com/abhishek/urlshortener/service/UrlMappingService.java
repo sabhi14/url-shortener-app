@@ -3,6 +3,7 @@ package com.abhishek.urlshortener.service;
 import com.abhishek.urlshortener.dto.AnalyticsResponse;
 import com.abhishek.urlshortener.dto.CreateShortUrlRequest;
 import com.abhishek.urlshortener.dto.CreateShortUrlResponse;
+import com.abhishek.urlshortener.dto.UpdateUrlMetadataRequest;
 import com.abhishek.urlshortener.entity.UrlMapping;
 import com.abhishek.urlshortener.exception.InvalidUrlException;
 import com.abhishek.urlshortener.exception.ShortUrlNotFoundException;
@@ -22,6 +23,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UrlMappingService {
@@ -120,5 +122,37 @@ public class UrlMappingService {
         return new AnalyticsResponse(urlMapping.getId(), urlMapping.getOriginalUrl(), urlMapping.getShortUrl(),
                 urlMapping.getCreatedAt(), urlMapping.getExpiresAt(), urlMapping.getClickCount(),
                 urlMapping.isActive());
+    }
+
+    public UrlMapping updateUrlMetadata(Long id, UpdateUrlMetadataRequest request) {
+        UrlMapping urlMapping = getUrlMappingById(id);
+
+        if (request.getOriginalUrl() != null && !request.getOriginalUrl().isBlank()) {
+            validateRequest(request.getOriginalUrl());
+            urlMapping.setOriginalUrl(request.getOriginalUrl());
+        }
+        if (request.getExpiresAt() != null) {
+            urlMapping.setExpiresAt(request.getExpiresAt());
+        }
+        if (request.getActive() != null) {
+            urlMapping.setActive(request.getActive());
+        }
+
+        return urlMappingRepository.save(urlMapping);
+    }
+
+    public UrlMapping toggleActiveStatus(Long id) {
+        UrlMapping urlMapping = getUrlMappingById(id);
+        urlMapping.setActive(!urlMapping.isActive());
+        return urlMappingRepository.save(urlMapping);
+    }
+
+    public Long getClickCountById(Long id) {
+        UrlMapping urlMapping = getUrlMappingById(id);
+        return urlMapping.getClickCount();
+    }
+
+    public List<UrlMapping> getTopFiveUrlsByClickCount() {
+        return urlMappingRepository.findTopFiveUrlsByClickCount().stream().limit(5).collect(Collectors.toList());
     }
 }

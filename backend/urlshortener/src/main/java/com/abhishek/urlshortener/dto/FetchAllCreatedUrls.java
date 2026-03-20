@@ -8,7 +8,6 @@ import java.util.*;
 
 import com.abhishek.urlshortener.entity.UrlMapping;
 
-
 /**
  * Response returned after successfully fetching all created short urls.
  */
